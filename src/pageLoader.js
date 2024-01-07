@@ -38,25 +38,11 @@ const replaceSymbols = (str) => {
  *
  * console.log(dirName); // dummyjson-com-docs_files
  */
-const createFilesDirName = ({ host, pathname }) => `${replaceSymbols(host + pathname)}_files`; // ru-hexlet-io-courses_files
+const createFilesDirName = ({ host, pathname }) => `${replaceSymbols(host + pathname)}_files`;
 
 /**
  * @function createFileName
- * Returns file name constructed from URL host, pathname and given extension
- * @param {Object} url - URL object
- * @param {*} ext - extension
- * @returns {string} - file name
- * @example
- * const url = new URL('https://dummyjson.com/docs');
- * const fileName = createFileName(url);
- *
- * console.log(fileName); // dummyjson-com-docs.html
- */
-const createFileName = ({ host, pathname }, ext) => `${replaceSymbols(host + pathname)}${ext}`;
-
-/**
- * @function createSrcFileName
- * Returns file name constructed from URL host, pathname and given extension
+ * Returns file name constructed from URL host, pathname
  * @param {Object} srcUrl - source URL object
  * @returns {string} - source file name
  * @example
@@ -65,7 +51,7 @@ const createFileName = ({ host, pathname }, ext) => `${replaceSymbols(host + pat
  *
  * console.log(fileName); // dummyjson-com-docs.html
  */
-const createSrcFileName = (srcUrl) => {
+const createFileName = (srcUrl) => {
   let ext = path.extname(srcUrl.pathname);
   let fileName;
   if (ext === '') {
@@ -74,7 +60,7 @@ const createSrcFileName = (srcUrl) => {
   } else {
     fileName = srcUrl.pathname.substring(0, srcUrl.pathname.lastIndexOf('.'));
   }
-  return `${createFileName({ host: srcUrl.host, pathname: fileName }, ext)}`;
+  return `${replaceSymbols(srcUrl.host + fileName)}${ext}`;
 };
 
 const srcAttrubuteName = {
@@ -101,7 +87,7 @@ export default (url, output) => new Promise((resolve, reject) => {
   const tasks = [];
   logPageLoader(`Starting loading page from ${url} to ${output}`);
   const pageUrl = new URL(url);
-  const pageFileName = createFileName(pageUrl, '.html'); // ru-hexlet-io-courses.html
+  const pageFileName = createFileName(pageUrl); // ru-hexlet-io-courses.html
   const filesDirName = createFilesDirName(pageUrl); // ru-hexlet-io-courses_files
   let $;
   mkdir(path.join(output, filesDirName))
@@ -116,12 +102,14 @@ export default (url, output) => new Promise((resolve, reject) => {
         if (!oldSrc) {
           return null;
         }
-        const srcUrl = new URL(oldSrc, pageUrl.origin);
 
+        const srcUrl = new URL(oldSrc, pageUrl.origin);
+        // If hosts are different
         if (pageUrl.host !== srcUrl.host) {
           return null;
         }
-        const srcFileName = createSrcFileName(srcUrl);
+
+        const srcFileName = createFileName(srcUrl);
         const newSrc = `${filesDirName}/${srcFileName}`;
 
         $(el).attr(srcAttr, newSrc);
