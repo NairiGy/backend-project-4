@@ -136,6 +136,6 @@ export default (url, output) => new Promise((resolve, reject) => {
       } else {
         console.log('Unexpected error');
       }
-      process.exit(1);
+      process.exit();
     });
 });
