@@ -2,26 +2,30 @@ import path from 'path';
 import os from 'os';
 import nock from 'nock';
 import { mkdtemp, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'url';
+import debug from 'debug';
 import pageLoader from '../src/pageLoader.js';
 
-const mockUrl = 'http://www.test.com';
-const mockData = 'abc';
-let tempDir;
+const logNock = debug('nock');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-beforeEach(async () => {
-  tempDir = await mkdtemp(path.join(os.tmpdir(), 'page-loader-'));
-});
+const mockUrl = 'https://ru.hexlet.io';
 
-test('fileName is correctly made', async () => {
-  nock(mockUrl).get('/').reply(200, mockData);
-  const fileName = 'www-test-com.html';
-  const pagePathExpected = `${tempDir}/${fileName}`;
+test('pageLoader is correctly modifing sources', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'page-loader-'));
+  const pageBefore = await readFile(path.join(__dirname, '..', '__fixtures__', 'pageBefore.html'), 'utf-8');
+  const pageAfter = await readFile(path.join(__dirname, '..', '__fixtures__', 'pageAfter.html'), 'utf-8');
+  const dummyData = '';
+  nock(mockUrl)
+    .persist()
+    .get('/courses')
+    .reply(200, pageBefore);
+  nock(mockUrl).get('/assets/professions/nodejs.png').reply(200, dummyData);
+  nock(mockUrl).get('/assets/application.css').reply(200, dummyData);
+  nock(mockUrl).get('/packs/js/runtime.js').reply(200, dummyData);
 
-  await expect(pageLoader(mockUrl, tempDir)).resolves.toEqual(pagePathExpected);
-});
-
-test('data is correcly loaded', async () => {
-  nock(mockUrl).get('/').reply(200, mockData);
-  const pathActual = await pageLoader(mockUrl, tempDir);
-  await expect(readFile(pathActual, 'utf-8')).resolves.toEqual(mockData);
+  const pathActual = await pageLoader('https://ru.hexlet.io/courses', tempDir);
+  const modifiedPage = await readFile(path.resolve(tempDir, pathActual), 'utf-8');
+  expect(modifiedPage).toBe(pageAfter);
 });

@@ -11,7 +11,7 @@ program
   .option('-o, --output [dir]', 'output dir (default: "/home/user/current-dir")', process.cwd())
   .argument('<url>')
   .action(async (url, options) => {
-    const path = await pageLoader(url, options.output);
-    console.log(path);
+    const fileName = await pageLoader(url, options.output);
+    console.log(`Page was successfully loaded into '${options.output}/${fileName}'`);
   })
   .parse();
