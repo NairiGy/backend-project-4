@@ -1,6 +1,5 @@
-/* eslint-disable max-len */
 import * as cheerio from 'cheerio';
-import { writeFile, mkdir } from 'fs/promises';
+import fsp from 'fs/promises';
 import path from 'path';
 import debug from 'debug';
 import Listr from 'listr';
@@ -69,31 +68,33 @@ const srcAttrubuteName = {
   script: 'src',
 };
 
-const srcResponseType = {
-  img: 'arraybuffer',
-  link: 'json',
-  script: 'json',
-};
 /**
- * @function
+ * @function pageLoader
  * 1) Loads a html page from given url
  * 2) Loads all resourses from img, link, script tags, that have the same host as the page
- * 3) Modifies respective src attributes so thay refer to loaded resources
+ * 3) Modifies the corresponding src attributes so they refer to the loaded resources.
  * @param {string} url - url string of a page
  * @param {string} output - directory to load
- * @returns {string} loaded page file name
+ * @returns {Promise<string>} - fulfills to the path to created file
  */
-export default (url, output) => new Promise((resolve, reject) => {
-  const tasks = [];
+export default (url, output) => {
   logPageLoader(`Starting loading page from ${url} to ${output}`);
+  const tasks = [];
   const pageUrl = new URL(url);
   const pageFileName = createFileName(pageUrl); // ru-hexlet-io-courses.html
   const filesDirName = createFilesDirName(pageUrl); // ru-hexlet-io-courses_files
+  const filesDirFullPath = path.join(output, filesDirName);
+  const pageFileFullPath = path.join(output, pageFileName);
   let $;
-  mkdir(path.join(output, filesDirName))
-    .then(() => loadResourse(url, path.join(output, pageFileName)))
-    .then((content) => {
-      $ = cheerio.load(content);
+
+  return loadResourse(url, pageFileFullPath)
+    .then(() => {
+      logPageLoader(`Creating directory for files - ${filesDirFullPath}`);
+      return fsp.mkdir(filesDirFullPath);
+    })
+    .then(() => fsp.readFile(pageFileFullPath, 'utf-8'))
+    .then((data) => {
+      $ = cheerio.load(data);
       $('img, link, script').each((_, el) => {
         const { tagName } = $(el).get(0);
         const srcAttr = srcAttrubuteName[tagName];
@@ -102,40 +103,32 @@ export default (url, output) => new Promise((resolve, reject) => {
         if (!oldSrc) {
           return null;
         }
-
         const srcUrl = new URL(oldSrc, pageUrl.origin);
         // If hosts are different
         if (pageUrl.host !== srcUrl.host) {
           return null;
         }
-
         const srcFileName = createFileName(srcUrl);
+        const srcFileFullPath = path.join(output, filesDirName, srcFileName);
         const newSrc = `${filesDirName}/${srcFileName}`;
-
         $(el).attr(srcAttr, newSrc);
         logPageLoader(`Adding task of loading ${srcUrl.href} to ${path.join(output, filesDirName, srcFileName)}`);
         const task = {
           title: srcUrl.href,
-          task: () => loadResourse(srcUrl.href, path.join(output, filesDirName, srcFileName), srcResponseType[tagName]),
+          task: () => loadResourse(srcUrl.href, srcFileFullPath),
         };
-
         return tasks.push(task);
       });
-    }).then(() => {
+    })
+    .then(() => {
       const noDuplicateTasks = _.uniqBy(tasks, 'title');
       const list = new Listr(noDuplicateTasks, { concurrent: true });
+      logPageLoader(`Running ${noDuplicateTasks.length} tasks`);
       return list.run();
     })
-    .then(() => writeFile(path.join(output, pageFileName), $.html()))
-    .then(() => resolve(pageFileName));
-  // .catch((e) => {
-  //   if (e.errno === -17) {
-  //     console.log(`Directory ${output}/${filesDirName} already exists`);
-  //   } else if (e) {
-  //     console.log(`${e}`);
-  //   } else {
-  //     console.log('Unexpected error');
-  //   }
-  //   process.exitCode = 1;
-  // });
-});
+    .then(() => {
+      logPageLoader('Changing src values');
+      return fsp.writeFile(pageFileFullPath, $.html());
+    })
+    .then(() => pageFileFullPath);
+};

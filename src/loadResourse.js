@@ -1,45 +1,27 @@
 import axios from 'axios';
-import { writeFile } from 'fs/promises';
+import fs from 'node:fs';
 import debug from 'debug';
+import { pipeline } from 'node:stream/promises';
 
 const logAxios = debug('axios');
 
 /**
- * Downloads a file from url to the given path
- * @param {*} url
- * @param {*} path
- * @param {*} responseType
- * @returns {Promise} Fulfills with the file content upon success
+ * @function loadResourse
+ * Loads resourse from utl to local path
+ * @param {string} url - url string of a resourse
+ * @param {string} path - directory to load
+ * @returns {Promise}
  */
-export default (url, path, responseType = 'json') => new Promise((resolve, reject) => {
-  logAxios(`Loading from ${url} to ${path}`);
-  let content;
-  axios({
+export default (url, path) => {
+  logAxios(`Starting loading from ${url} to ${path}`);
+  return axios({
     method: 'get',
     url,
-    responseType,
+    responseType: 'stream',
     validateStatus: (status) => status === 200,
   })
-    .then((response) => {
-      logAxios(`GET with response status ${response.status} for ${url}`);
-      content = response.data;
-      if (responseType === 'arraybuffer') {
-        return writeFile(path, Buffer.from(content));
-      }
-      if (typeof content === 'object') {
-        content = JSON.stringify(content);
-      }
-      return writeFile(path, content);
-    })
-    .then(() => resolve(content));
-  // .catch((e) => {
-  //   logAxios(`Error when loading from ${url} to ${path}`);
-  //   logAxios(e);
-  //   // HTTP error
-  //   if (e.response) {
-  //     reject(new Error(`Loading resourse from ${url} ended with status ${e.response.status}`));
-  //   }
-  //   // writeFile error
-  //   reject(new Error(e));
-  // });
-});
+    .then(({ data }) => {
+      logAxios(`Streaming data to ${path} from ${url}`);
+      return pipeline(data, fs.createWriteStream(path));
+    });
+};

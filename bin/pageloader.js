@@ -12,11 +12,11 @@ program
   .argument('<url>')
   .action((url, options) => {
     pageLoader(url, options.output)
-      .then((fileName) => {
-        console.log(`Page was successfully loaded into '${options.output}/${fileName}'`);
+      .then((fullPath) => {
+        console.log(`Page was successfully loaded into '${fullPath}'`);
       })
       .catch((e) => {
-        console.log(e);
+        console.error(e);
         process.exit(1);
       });
   })
