@@ -3,10 +3,10 @@ import os from 'os';
 import nock from 'nock';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'url';
-import debug from 'debug';
+// import debug from 'debug';
 import pageLoader from '../src/pageLoader.js';
 
-const logNock = debug('nock');
+// const logNock = debug('nock');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

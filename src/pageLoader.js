@@ -75,7 +75,7 @@ const srcAttrubuteName = {
  * 3) Modifies the corresponding src attributes so they refer to the loaded resources.
  * @param {string} url - url string of a page
  * @param {string} output - directory to load
- * @returns {Promise<string>} - fulfills to the path to created file
+ * @returns {Promise<string>} fulfills to the path to created file
  */
 export default (url, output) => {
   logPageLoader(`Starting loading page from ${url} to ${output}`);
@@ -95,7 +95,7 @@ export default (url, output) => {
     .then(() => fsp.readFile(pageFileFullPath, 'utf-8'))
     .then((data) => {
       $ = cheerio.load(data);
-      $('img, link, script').each((_, el) => {
+      $('img, link, script').each((_i, el) => {
         const { tagName } = $(el).get(0);
         const srcAttr = srcAttrubuteName[tagName];
         const oldSrc = $(el).attr(srcAttr);

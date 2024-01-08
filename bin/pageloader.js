@@ -11,7 +11,7 @@ program
   .option('-o, --output [dir]', 'output dir (default: "/home/user/current-dir")', process.cwd())
   .argument('<url>')
   .action((url, options) => {
-    pageLoader(url, options.output)
+    pageLoader(url, options.output ?? process.cwd())
       .then((fullPath) => {
         console.log(`Page was successfully loaded into '${fullPath}'`);
       })
