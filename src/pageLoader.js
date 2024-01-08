@@ -77,12 +77,12 @@ const srcAttrubuteName = {
  * @param {string} output - directory to load
  * @returns {Promise<string>} fulfills to the path to created file
  */
-export default (url, output) => {
+export default (url, output = process.cwd) => {
   logPageLoader(`Starting loading page from ${url} to ${output}`);
   const tasks = [];
   const pageUrl = new URL(url);
-  const pageFileName = createFileName(pageUrl); // ru-hexlet-io-courses.html
-  const filesDirName = createFilesDirName(pageUrl); // ru-hexlet-io-courses_files
+  const pageFileName = createFileName(pageUrl);
+  const filesDirName = createFilesDirName(pageUrl);
   const filesDirFullPath = path.join(output, filesDirName);
   const pageFileFullPath = path.join(output, pageFileName);
   let $;
