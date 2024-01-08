@@ -44,10 +44,10 @@ describe('loadResourse function', () => {
     await expect(loadResourse(mockUrl, invalidPath)).rejects.toThrow(errorMessage);
   });
 
-//   test('should fail when there is no write permission', async () => {
-//     const noPermissionDir = path.join(__dirname, '..', '__fixtures__', 'noWritePermission');
-//     const errorMessage = `EISDIR: illegal operation on a directory, open '${noPermissionDir}'`;
-//     nock(mockUrl).get('/').reply(200, '');
-//     await expect(loadResourse(mockUrl, noPermissionDir)).rejects.toThrow(errorMessage);
-//   });
-// });
+  // test('should fail when there is no write permission', async () => {
+  //   const noPermissionDir = path.join(__dirname, '..', '__fixtures__', 'noWritePermission');
+  //   const errorMessage = `EISDIR: illegal operation on a directory, open '${noPermissionDir}'`;
+  //   nock(mockUrl).get('/').reply(200, '');
+  //   await expect(loadResourse(mockUrl, noPermissionDir)).rejects.toThrow(errorMessage);
+  // });
+});
