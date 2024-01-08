@@ -77,7 +77,7 @@ const srcAttrubuteName = {
  * @param {string} output - directory to load
  * @returns {Promise<string>} fulfills to the path to created file
  */
-export default (url, output = process.cwd) => {
+export default (url, output = process.cwd()) => {
   logPageLoader(`Starting loading page from ${url} to ${output}`);
   const tasks = [];
   const pageUrl = new URL(url);
