@@ -10,8 +10,14 @@ program
   .helpOption('-h, --help', 'display help for command')
   .option('-o, --output [dir]', 'output dir (default: "/home/user/current-dir")', process.cwd())
   .argument('<url>')
-  .action(async (url, options) => {
-    const fileName = await pageLoader(url, options.output);
-    console.log(`Page was successfully loaded into '${options.output}/${fileName}'`);
+  .action((url, options) => {
+    pageLoader(url, options.output)
+      .then((fileName) => {
+        console.log(`Page was successfully loaded into '${options.output}/${fileName}'`);
+      })
+      .catch((e) => {
+        console.log(e);
+        process.exit(1);
+      });
   })
   .parse();

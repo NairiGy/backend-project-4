@@ -31,15 +31,15 @@ export default (url, path, responseType = 'json') => new Promise((resolve, rejec
       }
       return writeFile(path, content);
     })
-    .then(() => resolve(content))
-    .catch((e) => {
-      logAxios(`Error when loading from ${url} to ${path}`);
-      logAxios(e);
-      // HTTP error
-      if (e.response) {
-        reject(new Error(`Loading resourse from ${url} ended with status ${e.response.status}`));
-      }
-      // writeFile error
-      reject(new Error(e));
-    });
+    .then(() => resolve(content));
+  // .catch((e) => {
+  //   logAxios(`Error when loading from ${url} to ${path}`);
+  //   logAxios(e);
+  //   // HTTP error
+  //   if (e.response) {
+  //     reject(new Error(`Loading resourse from ${url} ended with status ${e.response.status}`));
+  //   }
+  //   // writeFile error
+  //   reject(new Error(e));
+  // });
 });

@@ -127,15 +127,15 @@ export default (url, output) => new Promise((resolve, reject) => {
       return list.run();
     })
     .then(() => writeFile(path.join(output, pageFileName), $.html()))
-    .then(() => resolve(pageFileName))
-    .catch((e) => {
-      if (e.errno === -17) {
-        console.log(`Directory ${output}/${filesDirName} already exists`);
-      } else if (e) {
-        console.log(`${e}`);
-      } else {
-        console.log('Unexpected error');
-      }
-      process.exitCode = 1;
-    });
+    .then(() => resolve(pageFileName));
+  // .catch((e) => {
+  //   if (e.errno === -17) {
+  //     console.log(`Directory ${output}/${filesDirName} already exists`);
+  //   } else if (e) {
+  //     console.log(`${e}`);
+  //   } else {
+  //     console.log('Unexpected error');
+  //   }
+  //   process.exitCode = 1;
+  // });
 });
