@@ -6,7 +6,7 @@ import Listr from 'listr';
 import _ from 'lodash';
 import loadResourse from './loadResourse.js';
 
-const logPageLoader = debug('page-loader');
+const log = debug('page-loader');
 
 /**
  * @function replaceSymbols
@@ -51,21 +51,46 @@ const createFilesDirName = ({ host, pathname }) => `${replaceSymbols(host + path
  * console.log(fileName); // dummyjson-com-docs.html
  */
 const createFileName = (srcUrl) => {
-  let ext = path.extname(srcUrl.pathname);
-  let fileName;
-  if (ext === '') {
-    ext = '.html';
-    fileName = srcUrl.pathname;
-  } else {
-    fileName = srcUrl.pathname.substring(0, srcUrl.pathname.lastIndexOf('.'));
-  }
-  return `${replaceSymbols(srcUrl.host + fileName)}${ext}`;
+  const extension = path.extname(srcUrl.pathname) || '.html';
+  const fileName = extension === '.html' ? srcUrl.pathname : srcUrl.pathname.slice(0, -extension.length);
+  return replaceSymbols(srcUrl.host + fileName) + extension;
 };
 
 const srcAttrubuteName = {
   img: 'src',
   link: 'href',
   script: 'src',
+};
+
+/**
+ * Prepares assets for a given page URL and HTML content.
+ *
+ * @param {string} pageUrl - The URL of the page
+ * @param {string} filesDirName - The directory name for files
+ * @param {string} html - The HTML content of the page
+ * @return {Object} An object containing the modified HTML and a list of assets
+ */
+const prepareAssets = (pageUrl, filesDirName, html) => {
+  const $ = cheerio.load(html, { decodeEntities: false });
+  const assets = [];
+  const entries = Object.entries(srcAttrubuteName);
+  entries.forEach(([tagName, attrubuteName]) => {
+    $(tagName).each((_i, el) => {
+      const oldSrc = $(el).attr(attrubuteName);
+      if (!oldSrc) {
+        return null;
+      }
+      const srcUrl = new URL(oldSrc, pageUrl.origin);
+      if (pageUrl.host !== srcUrl.host) {
+        return null;
+      }
+      const srcFileName = createFileName(srcUrl);
+      const newSrc = `${filesDirName}/${srcFileName}`;
+      $(el).attr(attrubuteName, newSrc);
+      return assets.push({ url: srcUrl.href, fileName: srcFileName });
+    });
+  });
+  return { html: $.html(), assets };
 };
 
 /**
@@ -78,44 +103,31 @@ const srcAttrubuteName = {
  * @returns {Promise<string>} fulfills to the path to created file
  */
 export default (url, output = process.cwd()) => {
-  logPageLoader(`Starting loading page from ${url} to ${output}`);
+  log(`Starting loading page from ${url} to ${output}`);
   const tasks = [];
   const pageUrl = new URL(url);
   const pageFileName = createFileName(pageUrl);
   const filesDirName = createFilesDirName(pageUrl);
   const filesDirFullPath = path.join(output, filesDirName);
   const pageFileFullPath = path.join(output, pageFileName);
-  let $;
+  let content;
 
   return loadResourse(url, pageFileFullPath)
     .then(() => {
-      logPageLoader(`Creating directory for files - ${filesDirFullPath}`);
+      log(`Creating directory for files - ${filesDirFullPath}`);
       return fsp.mkdir(filesDirFullPath);
     })
     .then(() => fsp.readFile(pageFileFullPath, 'utf-8'))
     .then((data) => {
-      $ = cheerio.load(data);
-      $('img, link, script').each((_i, el) => {
-        const { tagName } = $(el).get(0);
-        const srcAttr = srcAttrubuteName[tagName];
-        const oldSrc = $(el).attr(srcAttr);
-        // If there is no source attribute in a tag
-        if (!oldSrc) {
-          return null;
-        }
-        const srcUrl = new URL(oldSrc, pageUrl.origin);
-        // If hosts are different
-        if (pageUrl.host !== srcUrl.host) {
-          return null;
-        }
-        const srcFileName = createFileName(srcUrl);
-        const srcFileFullPath = path.join(output, filesDirName, srcFileName);
-        const newSrc = `${filesDirName}/${srcFileName}`;
-        $(el).attr(srcAttr, newSrc);
-        logPageLoader(`Adding task of loading ${srcUrl.href} to ${path.join(output, filesDirName, srcFileName)}`);
+      const { html, assets } = prepareAssets(pageUrl, filesDirName, data);
+      content = html;
+      assets.forEach((asset) => {
+        const srcFileFullPath = path.join(output, filesDirName, asset.fileName);
+        console.log(asset.url);
+        log(`Adding task of loading ${asset.url} to ${path.join(output, filesDirName, asset.fileName)}`);
         const task = {
-          title: srcUrl.href,
-          task: () => loadResourse(srcUrl.href, srcFileFullPath),
+          title: asset.url,
+          task: () => loadResourse(asset.url, srcFileFullPath),
         };
         return tasks.push(task);
       });
@@ -123,12 +135,12 @@ export default (url, output = process.cwd()) => {
     .then(() => {
       const noDuplicateTasks = _.uniqBy(tasks, 'title');
       const list = new Listr(noDuplicateTasks, { concurrent: true });
-      logPageLoader(`Running ${noDuplicateTasks.length} tasks`);
+      log(`Running ${noDuplicateTasks.length} tasks`);
       return list.run();
     })
     .then(() => {
-      logPageLoader('Changing src values');
-      return fsp.writeFile(pageFileFullPath, $.html());
+      log('Changing src values');
+      return fsp.writeFile(pageFileFullPath, content);
     })
     .then(() => pageFileFullPath);
 };
