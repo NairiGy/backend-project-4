@@ -110,7 +110,6 @@ export default (url, output = process.cwd()) => {
   const filesDirName = createFilesDirName(pageUrl);
   const filesDirFullPath = path.join(output, filesDirName);
   const pageFileFullPath = path.join(output, pageFileName);
-  let content;
 
   return loadResourse(url, pageFileFullPath)
     .then(() => {
@@ -120,10 +119,8 @@ export default (url, output = process.cwd()) => {
     .then(() => fsp.readFile(pageFileFullPath, 'utf-8'))
     .then((data) => {
       const { html, assets } = prepareAssets(pageUrl, filesDirName, data);
-      content = html;
       assets.forEach((asset) => {
         const srcFileFullPath = path.join(output, filesDirName, asset.fileName);
-        console.log(asset.url);
         log(`Adding task of loading ${asset.url} to ${path.join(output, filesDirName, asset.fileName)}`);
         const task = {
           title: asset.url,
@@ -131,16 +128,17 @@ export default (url, output = process.cwd()) => {
         };
         return tasks.push(task);
       });
+      return html;
+    })
+    .then((html) => {
+      log('Changing src values');
+      return fsp.writeFile(pageFileFullPath, html);
     })
     .then(() => {
       const noDuplicateTasks = _.uniqBy(tasks, 'title');
       const list = new Listr(noDuplicateTasks, { concurrent: true });
       log(`Running ${noDuplicateTasks.length} tasks`);
       return list.run();
-    })
-    .then(() => {
-      log('Changing src values');
-      return fsp.writeFile(pageFileFullPath, content);
     })
     .then(() => pageFileFullPath);
 };
